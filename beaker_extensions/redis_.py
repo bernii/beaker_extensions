@@ -7,11 +7,12 @@ from beaker_extensions.nosql import NoSqlManager
 from beaker_extensions.nosql import pickle
 
 try:
-    from redis import StrictRedis, ConnectionPool
+    from redis.sentinel import Sentinel, StrictRedis, SentinelConnectionPool
 except ImportError:
     raise InvalidCacheBackendError("Redis cache backend requires the 'redis' library")
 
 log = logging.getLogger(__name__)
+
 
 class RedisManager(NoSqlManager):
 
@@ -32,13 +33,18 @@ class RedisManager(NoSqlManager):
                               lock_dir=lock_dir,
                               **params)
 
-    def open_connection(self, host, port, **params):
-        pool_key = self._format_pool_key(host, port, self.db)
+    def parse_url(self, url):
+        role, sentinels = url.split('/')
+        sentinels = [x.split(':') for x in sentinels.split(",")]
+        sentinels = [(x[0], int(x[1])) for x in sentinels]
+        return {'sentinels': sentinels, 'role': role}
+
+    def open_connection(self, sentinels, role, **params):
+        sentinel = Sentinel(sentinels, socket_timeout=0.1, password=self.dbpass)
+        pool_key = self._format_pool_key(sentinels, self.db)
         if pool_key not in self.connection_pools:
-            self.connection_pools[pool_key] = ConnectionPool(host=host,
-                                                             port=port,
-                                                             db=self.db,
-                                                             password=self.dbpass)
+            self.connection_pools[pool_key] = SentinelConnectionPool(service_name=role,
+                                                                     sentinel_manager=sentinel)
         self.db_conn = StrictRedis(connection_pool=self.connection_pools[pool_key],
                                    **params)
 
@@ -74,8 +80,9 @@ class RedisManager(NoSqlManager):
     def _format_key(self, key):
         return 'beaker:%s:%s' % (self.namespace, key.replace(' ', '\302\267'))
 
-    def _format_pool_key(self, host, port, db):
-        return '{0}:{1}:{2}'.format(host, port, self.db)
+    def _format_pool_key(self, sentinels, db):
+        sentinels_str = ''.join([''.join(str(x)) for x in sentinels])
+        return '{0}:{1}'.format(sentinels_str, db)
 
     def do_remove(self):
         self.db_conn.flush()

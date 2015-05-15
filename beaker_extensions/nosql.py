@@ -1,6 +1,6 @@
 import json
 import logging
- 
+
 from beaker.container import NamespaceManager, Container
 from beaker.synchronization import file_synchronizer
 from beaker.util import verify_directory
@@ -10,9 +10,10 @@ try:
     import cPickle as pickle
 except:
     import pickle
- 
+
 log = logging.getLogger(__name__)
- 
+
+
 class NoSqlManager(NamespaceManager):
     def __init__(self, namespace, url=None, data_dir=None, lock_dir=None, expire=None, **params):
         NamespaceManager.__init__(self, namespace)
@@ -32,6 +33,8 @@ class NoSqlManager(NamespaceManager):
 
         self._expiretime = int(expire) if expire else None
 
+        if hasattr(self, 'parse_url'):
+            return self.open_connection(**self.parse_url(url))
         conn_params = {}
         parts = url.split('?', 1)
         url = parts[0]
