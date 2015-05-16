@@ -40,12 +40,12 @@ class RedisManager(NoSqlManager):
         return {'sentinels': sentinels, 'role': role}
 
     def open_connection(self, sentinels, role, **params):
-        sentinel = Sentinel(sentinels, socket_timeout=0.1, password=self.dbpass)
+        sentinel = Sentinel(sentinels, socket_timeout=0.1)
         pool_key = self._format_pool_key(sentinels, self.db)
         if pool_key not in self.connection_pools:
             self.connection_pools[pool_key] = SentinelConnectionPool(service_name=role,
                                                                      sentinel_manager=sentinel,
-								     password=self.dbpass)
+								                                     password=self.dbpass)
         self.db_conn = StrictRedis(connection_pool=self.connection_pools[pool_key],
                                    **params)
 
