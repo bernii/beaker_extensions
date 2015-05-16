@@ -44,7 +44,8 @@ class RedisManager(NoSqlManager):
         pool_key = self._format_pool_key(sentinels, self.db)
         if pool_key not in self.connection_pools:
             self.connection_pools[pool_key] = SentinelConnectionPool(service_name=role,
-                                                                     sentinel_manager=sentinel)
+                                                                     sentinel_manager=sentinel,
+								     password=self.dbpass)
         self.db_conn = StrictRedis(connection_pool=self.connection_pools[pool_key],
                                    **params)
 

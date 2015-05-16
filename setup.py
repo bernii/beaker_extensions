@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 import sys, os
 
-version = '0.2.0'
+version = '0.2.1'
 
-setup(name='beaker_extensions',
+setup(name='beaker_extensions_sentinel',
       version=version,
       description="Beaker extensions for additional back-end stores.",
       long_description="""\
